@@ -350,7 +350,50 @@
             h1 {
                 font-size: 1.8rem;
             }
-        }
+		}
+
+		.default-thumbnail {
+    		display: flex;
+    		flex-direction: column;
+    		align-items: center;
+    		cursor: pointer;
+    		padding: 8px;
+    		border-radius: 6px;
+    		border: 2px solid transparent;
+    		transition: all 0.3s ease;
+		}
+
+		.default-thumbnail:hover {
+    		background-color: #e8f4fc;
+		}
+
+		.default-thumbnail.selected {
+    		border-color: var(--secondary-color);
+    		background-color: #e8f4fc;
+		}
+
+		.default-thumbnail img {
+    		width: 60px;
+    		height: 60px;
+    		object-fit: cover;
+    		border-radius: 4px;
+    		margin-bottom: 5px;
+    		background-color: #2c3e50;
+		}
+
+		.default-thumbnail span {
+    		font-size: 0.8rem;
+    		text-align: center;
+    		color: var(--dark-color);
+		}
+
+		.image-gallery {
+    		display: grid;
+    		grid-template-columns: repeat(3, 1fr);
+    		gap: 10px;
+    		margin-top: 15px;
+    		margin-bottom: 15px;
+		}
     </style>
 </head>
 <body>
@@ -396,12 +439,17 @@
                 </div>
                 
                 <div class="panel-section">
-                    <h2 class="panel-title">Cargar Imagen</h2>
-                    <div class="upload-section">
-                        <input type="file" id="file-input" class="file-input" accept="image/*">
-                        <label for="file-input" class="file-label">📤 Subir imagen</label>
-                    </div>
-                </div>
+    				<h2 class="panel-title">Selección de Imagen</h2>
+    
+    				<div class="image-gallery" id="default-images-gallery">
+        			
+    				</div>
+    
+    				<div class="upload-section">
+        				<input type="file" id="file-input" class="file-input" accept="image/*">
+        				<label for="file-input" class="file-label">📤 Subir imagen</label>
+    				</div>
+				</div>
                 
                 <div class="panel-section">
                     <h2 class="panel-title">Colimación</h2>
@@ -490,7 +538,21 @@
         let isExposing = false;
         let originalImage = null;
         let currentImage = null;
-	let collimationApplied = false;
+		let collimationApplied = false;
+
+		// Ruta base para imágenes predeterminadas
+		const baseImagePath = "file:///C:/ImagenesRayosX/";
+
+		// Imágenes predeterminadas disponibles
+		const defaultImages = [
+    		{ id: 'brazo', name: 'Brazo', filename: 'brazo.png' },
+    		{ id: 'pierna', name: 'Pierna', filename: 'pierna.png' },
+    		{ id: 'craneo', name: 'Cráneo', filename: 'craneo.png' },
+    		{ id: 'dental', name: 'Dental', filename: 'dental.png' },
+    		{ id: 'mano', name: 'Mano', filename: 'mano.png' },
+    		{ id: 'dedos', name: 'Dedos', filename: 'dedos.png' },
+    		{ id: 'torso', name: 'Torso', filename: 'torso.png' }
+		];
         
         // Configurar la subida de archivos
         fileInput.addEventListener('change', function(e) {
@@ -504,7 +566,12 @@
                     xrayImage.src = event.target.result;
                     originalImage = event.target.result;
                     currentImage = event.target.result;
-                    
+
+					// Deseleccionar miniaturas predeterminadas
+            		document.querySelectorAll('.default-thumbnail').forEach(thumb => {
+                		thumb.classList.remove('selected');
+            		});
+
                     // Habilitar botones
                     resetBtn.disabled = false;
                     removeBtn.disabled = false;
@@ -514,7 +581,63 @@
                 reader.readAsDataURL(file);
             }
         });
+
+		// Cargar imágenes predeterminadas desde la carpeta local
+		function loadDefaultImages() {
+    		const gallery = document.getElementById('default-images-gallery');
+    
+    		defaultImages.forEach(image => {
+        		const thumbnail = document.createElement('div');
+        		thumbnail.className = 'default-thumbnail';
+        		thumbnail.dataset.imageId = image.id;
         
+        		thumbnail.innerHTML = `
+            		<img src="${baseImagePath}${image.filename}" alt="${image.name}" 
+                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzJjM2U1MCIgLz4KICA8dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjgiIGZpbGw9IndoaXRlIj5Ob0Rpc3BvbmlibGU8L3RleHQ+Cjwvc3ZnPg=='">
+            		<span>${image.name}</span>
+        		`;
+        
+        		thumbnail.addEventListener('click', () => {
+            		selectDefaultImage(image);
+        		});
+        
+        		gallery.appendChild(thumbnail);
+    		});
+		}
+
+		// Seleccionar una imagen predeterminada
+		function selectDefaultImage(image) {
+    		const fullImagePath = `${baseImagePath}${image.filename}`;
+    
+    		// Mostrar imagen y ocultar estado vacío
+    		xrayImage.style.display = 'block';
+    		emptyState.style.display = 'none';
+    
+    		// Intentar cargar la imagen
+    		xrayImage.onload = function() {
+        		originalImage = fullImagePath;
+        		currentImage = fullImagePath;
+        
+        		// Habilitar botones
+        		resetBtn.disabled = false;
+        		removeBtn.disabled = false;
+        
+        		// Deseleccionar todas las miniaturas y seleccionar la actual
+        		document.querySelectorAll('.default-thumbnail').forEach(thumb => {
+            		thumb.classList.remove('selected');
+        		});
+        		document.querySelector(`.default-thumbnail[data-image-id="${image.id}"]`).classList.add('selected');
+        
+        		exposureDiagnosis.innerHTML = `<p>Imagen "${image.name}" cargada. Configure parámetros y presione "Preparar"</p>`;
+    		};
+    
+    		xrayImage.onerror = function() {
+        		exposureDiagnosis.innerHTML = `<p style="color: #e74c3c;">Error: No se pudo cargar la imagen ${image.name}. Verifique la ruta: ${baseImagePath}</p>`;
+    		};
+    
+    		xrayImage.src = fullImagePath;
+		}
+
         // Actualizar valores de los parámetros
         kVSlider.addEventListener('input', () => {
             kVValue.textContent = kVSlider.value;
@@ -881,6 +1004,7 @@ function setupCollimator() {
 	// Inicializar el colimador después de cargar la página
 window.addEventListener('load', () => {
     setupCollimator();
+	loadDefaultImages();
 });
 
     </script>
